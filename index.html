@@ -3,103 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Share Text Realtime</title>
+    <title>Share Text Pro</title>
     <style>
         :root {
-            --primary: #4F46E5;
+            --primary: #2563EB;
+            --primary-hover: #1D4ED8;
             --bg: #F3F4F6;
             --card: #FFFFFF;
             --text: #1F2937;
+            --border: #E5E7EB;
         }
         body {
             font-family: system-ui, -apple-system, sans-serif;
             background-color: var(--bg);
             color: var(--text);
             margin: 0;
+            padding: 0;
+            overflow-x: hidden; /* Mencegah scroll ngang karena drawer */
+        }
+        
+        /* Header & Navigation */
+        header {
+            background-color: var(--primary);
+            color: white;
             padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            max-width: 600px;
-            margin: auto;
-        }
-        .card {
-            background-color: var(--card);
-            padding: 16px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        h2 { margin-top: 0; font-size: 1.2rem; }
-        textarea {
-            width: 100%;
-            height: 80px;
-            padding: 8px;
-            border: 1px solid #D1D5DB;
-            border-radius: 8px;
-            resize: none;
-            box-sizing: border-box;
-            font-family: monospace;
-        }
-        .user-list {
-            list-style: none;
-            padding: 0; margin: 0;
-        }
-        .user-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #E5E7EB;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .user-item:last-child { border-bottom: none; }
-        button {
-            background-color: var(--primary);
-            color: white;
+        .menu-btn {
+            background: rgba(255,255,255,0.2);
             border: none;
+            color: white;
             padding: 8px 12px;
             border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
         }
-        button:active { opacity: 0.8; }
-        .badge {
-            background: #10B981;
+
+        /* Container Content */
+        .container {
+            padding: 16px;
+            max-width: 600px;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card {
+            background-color: var(--card);
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+        }
+        
+        h3 { margin: 0 0 12px 0; font-size: 1.1rem; }
+        
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            resize: none;
+            box-sizing: border-box;
+            font-family: monospace;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .btn-full {
+            width: 100%;
+            background-color: var(--primary);
             color: white;
-            padding: 2px 8px;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-full:active { background-color: var(--primary-hover); }
+        .btn-full:disabled { background-color: #9CA3AF; cursor: not-allowed; }
+
+        /* Drawer Styling */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: 0.3s ease;
+            z-index: 40;
+        }
+        .overlay.active { opacity: 1; visibility: visible; }
+
+        .drawer {
+            position: fixed;
+            top: 0; right: -280px; /* Sembunyikan di luar layar kanan */
+            width: 280px;
+            height: 100%;
+            background: var(--card);
+            box-shadow: -4px 0 15px rgba(0,0,0,0.1);
+            transition: 0.3s ease-in-out;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+        }
+        .drawer.active { right: 0; }
+
+        .drawer-header {
+            padding: 16px;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;}
+        
+        .user-list {
+            list-style: none;
+            padding: 0; margin: 0;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .user-item {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        .user-item:hover { background-color: var(--bg); }
+        
+        /* Status Indicators */
+        .status-dot {
+            width: 10px; height: 10px;
+            background-color: #10B981;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .target-badge {
+            background-color: #FCE7F3;
+            color: #BE185D;
+            padding: 4px 10px;
             border-radius: 12px;
             font-size: 0.8rem;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 10px;
         }
+
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h2>Identitas Anda</h2>
-        <p>Nama: <strong id="myNameDisplay">Memuat...</strong> <span class="badge">Online</span></p>
+    <header>
+        <div>
+            <strong style="font-size: 1.2rem;">KirimTeks</strong><br>
+            <span style="font-size: 0.8rem;" id="myIdentity">Menghubungkan...</span>
+        </div>
+        <button class="menu-btn" onclick="toggleDrawer(true)">👥 Users Online</button>
+    </header>
+
+    <div class="container">
+        
+        <div class="card">
+            <h3>Kirim Teks</h3>
+            <div id="targetIndicator" class="target-badge" style="display: none;">Target: <span id="targetNameLabel"></span></div>
+            <textarea id="textToSend" placeholder="Ketik atau paste teks yang akan dibagikan di sini..."></textarea>
+            <button id="sendBtn" class="btn-full" onclick="sendText()" disabled>
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path></svg>
+                Send
+            </button>
+        </div>
+
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="margin:0;">Kotak Masuk</h3>
+                <span style="font-size: 0.8rem; color: #6B7280;" id="senderInfoLabel">Kosong</span>
+            </div>
+            <textarea id="receivedText" readonly placeholder="Teks dari pengguna lain akan muncul di sini..."></textarea>
+            <button class="btn-full" onclick="copyText()" style="background-color: #10B981;">
+                📋 Copy Teks
+            </button>
+        </div>
     </div>
 
-    <div class="card">
-        <h2>Teks untuk dibagikan</h2>
-        <textarea id="textToShare" placeholder="Ketik teks yang ingin dicopy paste di sini..."></textarea>
-    </div>
-
-    <div class="card">
-        <h2>Pengguna Online</h2>
-        <ul id="userList" class="user-list">
-            <li>Memuat pengguna...</li>
+    <div class="overlay" id="overlay" onclick="toggleDrawer(false)"></div>
+    <div class="drawer" id="drawer">
+        <div class="drawer-header">
+            <strong>Pilih Penerima</strong>
+            <button class="close-btn" onclick="toggleDrawer(false)">✖</button>
+        </div>
+        <ul class="user-list" id="userList">
+            <li style="padding: 16px; color: #6B7280; text-align: center;">Mencari pengguna...</li>
         </ul>
     </div>
 
-    <div class="card">
-        <h2>Teks Diterima</h2>
-        <p style="font-size: 0.9rem; color: #6B7280; margin: 0 0 8px 0;" id="senderInfo">Belum ada teks masuk.</p>
-        <textarea id="receivedText" readonly placeholder="Teks dari pengguna lain akan muncul di sini..."></textarea>
-        <button onclick="copyReceivedText()" style="margin-top: 10px; width: 100%;">📋 Copy Teks</button>
-    </div>
-
     <script type="module">
-        // 1. Inisialisasi Firebase SDK Modular
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        // Tambahkan Modul Auth
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getDatabase, ref, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
@@ -111,105 +225,164 @@
         };
 
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
         const db = getDatabase(app);
 
-        // 2. Generate Identitas Random (Komputasi Session)
-        const myUid = 'user_' + Math.random().toString(36).substring(2, 10);
-        const myName = 'Anon_' + Math.floor(Math.random() * 9000 + 1000);
-        document.getElementById('myNameDisplay').innerText = myName;
+        // Variabel Global
+        let myUid = null;
+        let myName = 'User_' + Math.floor(Math.random() * 9000 + 1000); // Nama visual
+        let selectedTargetUid = null;
 
-        // 3. Sistem Kehadiran (Presence)
-        const myUserRef = ref(db, `users/${myUid}`);
-        
-        // Ketika tab ditutup/koneksi hilang, hapus node user ini
-        onDisconnect(myUserRef).remove().then(() => {
-            // Set status online saat ini
-            set(myUserRef, { name: myName, uid: myUid });
+        // 1. Eksekusi Anonymous Login
+        signInAnonymously(auth).catch((error) => {
+            console.error("Gagal Login Anonymous:", error);
+            alert("Gagal koneksi otentikasi. Pastikan Anonymous Sign-in aktif di Firebase!");
         });
 
-        // 4. Membaca Daftar Pengguna Online
-        const usersRef = ref(db, 'users');
-        onValue(usersRef, (snapshot) => {
-            const userListEl = document.getElementById('userList');
-            userListEl.innerHTML = '';
-            
-            if (snapshot.exists()) {
-                let hasOtherUsers = false;
-                snapshot.forEach((childSnapshot) => {
-                    const userData = childSnapshot.val();
-                    // Jangan tampilkan diri sendiri di daftar
-                    if (userData.uid !== myUid) {
-                        hasOtherUsers = true;
-                        const li = document.createElement('li');
-                        li.className = 'user-item';
-                        li.innerHTML = `
-                            <span>${userData.name}</span>
-                            <button onclick="shareText('${userData.uid}')">Kirim ✔</button>
-                        `;
-                        userListEl.appendChild(li);
-                    }
-                });
-                if (!hasOtherUsers) {
-                    userListEl.innerHTML = '<li>Belum ada pengguna lain.</li>';
+        // Pantau Status Login
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                myUid = user.uid;
+                document.getElementById('myIdentity').innerText = myName + ' (Online)';
+                setupPresence();
+                listenForIncomingTexts();
+            }
+        });
+
+        // 2. Sistem Kehadiran (Presence) yang mendeteksi koneksi jaringan
+        function setupPresence() {
+            const connectedRef = ref(db, '.info/connected');
+            const myUserRef = ref(db, `users/${myUid}`);
+
+            onValue(connectedRef, (snap) => {
+                if (snap.val() === true) {
+                    // Jika koneksi putus, hapus data user ini
+                    onDisconnect(myUserRef).remove().then(() => {
+                        // Tulis data user ini saat terhubung
+                        set(myUserRef, { uid: myUid, name: myName });
+                    });
                 }
-            } else {
-                userListEl.innerHTML = '<li>Belum ada pengguna lain.</li>';
-            }
-        });
+            });
 
-        // 5. Menerima Teks (Listener untuk node diri sendiri)
-        const myInboxRef = ref(db, `shared_texts/${myUid}`);
-        onValue(myInboxRef, (snapshot) => {
-            if (snapshot.exists()) {
-                const data = snapshot.val();
-                document.getElementById('receivedText').value = data.text;
-                document.getElementById('senderInfo').innerText = `Dikirim oleh: ${data.fromName}`;
+            // Pantau daftar pengguna online
+            const usersRef = ref(db, 'users');
+            onValue(usersRef, (snapshot) => {
+                const userListEl = document.getElementById('userList');
+                userListEl.innerHTML = '';
                 
-                // Opsional: Hapus pesan dari database setelah diterima agar tidak penuh
-                remove(myInboxRef);
-            }
-        });
+                let count = 0;
+                if (snapshot.exists()) {
+                    snapshot.forEach((childSnapshot) => {
+                        const userData = childSnapshot.val();
+                        if (userData.uid !== myUid) {
+                            count++;
+                            const li = document.createElement('li');
+                            li.className = 'user-item';
+                            // Jika list di-klik, panggil fungsi global selectTarget
+                            li.onclick = () => window.selectTarget(userData.uid, userData.name);
+                            li.innerHTML = `
+                                <span>${userData.name}</span>
+                                <span class="status-dot"></span>
+                            `;
+                            userListEl.appendChild(li);
+                        }
+                    });
+                }
+                
+                if (count === 0) {
+                    userListEl.innerHTML = '<li style="padding: 16px; color: #6B7280; text-align: center;">Belum ada pengguna lain.</li>';
+                }
+            });
+        }
 
-        // 6. Fungsi Mengirim Teks (Diekspos ke window agar bisa dipanggil dari HTML)
-        window.shareText = function(targetUid) {
-            const textContent = document.getElementById('textToShare').value;
+        // 3. Terima Pesan Masuk
+        function listenForIncomingTexts() {
+            const myInboxRef = ref(db, `shared_texts/${myUid}`);
+            onValue(myInboxRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    document.getElementById('receivedText').value = data.text;
+                    document.getElementById('senderInfoLabel').innerText = `Dari: ${data.fromName}`;
+                    
+                    // Notifikasi getar ringan jika browser/HP mendukung
+                    if (navigator.vibrate) navigator.vibrate(200);
+                    
+                    remove(myInboxRef); // Bersihkan node setelah diterima
+                }
+            });
+        }
+
+        // 4. Fungsi-fungsi Global (Diikat ke window agar bisa diakses HTML/UI)
+        window.toggleDrawer = function(show) {
+            const drawer = document.getElementById('drawer');
+            const overlay = document.getElementById('overlay');
+            if(show) {
+                drawer.classList.add('active');
+                overlay.classList.add('active');
+            } else {
+                drawer.classList.remove('active');
+                overlay.classList.remove('active');
+            }
+        };
+
+        window.selectTarget = function(uid, name) {
+            selectedTargetUid = uid;
+            
+            // Update UI Target
+            const indicator = document.getElementById('targetIndicator');
+            const targetNameLabel = document.getElementById('targetNameLabel');
+            const sendBtn = document.getElementById('sendBtn');
+            
+            indicator.style.display = 'inline-block';
+            targetNameLabel.innerText = name;
+            sendBtn.disabled = false; // Aktifkan tombol Send
+            
+            window.toggleDrawer(false); // Tutup drawer otomatis
+        };
+
+        window.sendText = function() {
+            if (!selectedTargetUid) return;
+            
+            const textContent = document.getElementById('textToSend').value;
             if (!textContent.trim()) {
-                alert("Isi teks terlebih dahulu!");
+                alert("Teks tidak boleh kosong!");
                 return;
             }
 
-            const targetInboxRef = ref(db, `shared_texts/${targetUid}`);
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.innerHTML = 'Mengirim...';
+            sendBtn.disabled = true;
+
+            const targetInboxRef = ref(db, `shared_texts/${selectedTargetUid}`);
             set(targetInboxRef, {
                 text: textContent,
                 fromName: myName,
                 timestamp: Date.now()
             }).then(() => {
-                alert("Teks berhasil dikirim!");
+                alert("Teks berhasil terkirim!");
+                document.getElementById('textToSend').value = ''; // Reset form
             }).catch((error) => {
-                alert("Gagal mengirim teks: " + error.message);
+                alert("Gagal: " + error.message);
+            }).finally(() => {
+                sendBtn.innerHTML = 'Send';
+                sendBtn.disabled = false;
             });
         };
 
-        // 7. Fungsi Copy Teks (Clipboard API)
-        window.copyReceivedText = function() {
-            const copyText = document.getElementById("receivedText");
-            if (!copyText.value) {
-                alert("Tidak ada teks untuk disalin!");
+        window.copyText = function() {
+            const copyInput = document.getElementById("receivedText");
+            if (!copyInput.value) {
+                alert("Belum ada teks yang bisa disalin!");
                 return;
             }
-            
-            // Pilih teks
-            copyText.select();
-            copyText.setSelectionRange(0, 99999); // Untuk perangkat mobile
-
-            // Salin ke clipboard
-            navigator.clipboard.writeText(copyText.value).then(() => {
-                alert("Teks berhasil disalin!");
-            }).catch(() => {
-                // Fallback untuk browser lawas
-                document.execCommand("copy");
-                alert("Teks berhasil disalin! (Fallback)");
-            });
+            copyInput.select();
+            copyInput.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(copyInput.value)
+                .then(() => alert("Teks tersalin ke clipboard!"))
+                .catch(() => {
+                    document.execCommand("copy");
+                    alert("Teks tersalin! (Mode lawas)");
+                });
         };
     </script>
 </body>
