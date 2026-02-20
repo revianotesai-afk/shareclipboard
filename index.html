@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Share Text Realtime</title>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --bg: #F3F4F6;
+            --card: #FFFFFF;
+            --text: #1F2937;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-width: 600px;
+            margin: auto;
+        }
+        .card {
+            background-color: var(--card);
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        h2 { margin-top: 0; font-size: 1.2rem; }
+        textarea {
+            width: 100%;
+            height: 80px;
+            padding: 8px;
+            border: 1px solid #D1D5DB;
+            border-radius: 8px;
+            resize: none;
+            box-sizing: border-box;
+            font-family: monospace;
+        }
+        .user-list {
+            list-style: none;
+            padding: 0; margin: 0;
+        }
+        .user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #E5E7EB;
+        }
+        .user-item:last-child { border-bottom: none; }
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:active { opacity: 0.8; }
+        .badge {
+            background: #10B981;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>Identitas Anda</h2>
+        <p>Nama: <strong id="myNameDisplay">Memuat...</strong> <span class="badge">Online</span></p>
+    </div>
+
+    <div class="card">
+        <h2>Teks untuk dibagikan</h2>
+        <textarea id="textToShare" placeholder="Ketik teks yang ingin dicopy paste di sini..."></textarea>
+    </div>
+
+    <div class="card">
+        <h2>Pengguna Online</h2>
+        <ul id="userList" class="user-list">
+            <li>Memuat pengguna...</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>Teks Diterima</h2>
+        <p style="font-size: 0.9rem; color: #6B7280; margin: 0 0 8px 0;" id="senderInfo">Belum ada teks masuk.</p>
+        <textarea id="receivedText" readonly placeholder="Teks dari pengguna lain akan muncul di sini..."></textarea>
+        <button onclick="copyReceivedText()" style="margin-top: 10px; width: 100%;">📋 Copy Teks</button>
+    </div>
+
+    <script type="module">
+        // 1. Inisialisasi Firebase SDK Modular
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCuEQQU_K8VFMrK7iu0tCvB3ujb_d75w-Y",
+            databaseURL: "https://missionimposibble-4e6a1-default-rtdb.firebaseio.com",
+            projectId: "missionimposibble-4e6a1",
+            storageBucket: "missionimposibble-4e6a1.firebasestorage.app",
+            appId: "1:139983716532:android:478a8c5c61b81cf1a2d7e1"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // 2. Generate Identitas Random (Komputasi Session)
+        const myUid = 'user_' + Math.random().toString(36).substring(2, 10);
+        const myName = 'Anon_' + Math.floor(Math.random() * 9000 + 1000);
+        document.getElementById('myNameDisplay').innerText = myName;
+
+        // 3. Sistem Kehadiran (Presence)
+        const myUserRef = ref(db, `users/${myUid}`);
+        
+        // Ketika tab ditutup/koneksi hilang, hapus node user ini
+        onDisconnect(myUserRef).remove().then(() => {
+            // Set status online saat ini
+            set(myUserRef, { name: myName, uid: myUid });
+        });
+
+        // 4. Membaca Daftar Pengguna Online
+        const usersRef = ref(db, 'users');
+        onValue(usersRef, (snapshot) => {
+            const userListEl = document.getElementById('userList');
+            userListEl.innerHTML = '';
+            
+            if (snapshot.exists()) {
+                let hasOtherUsers = false;
+                snapshot.forEach((childSnapshot) => {
+                    const userData = childSnapshot.val();
+                    // Jangan tampilkan diri sendiri di daftar
+                    if (userData.uid !== myUid) {
+                        hasOtherUsers = true;
+                        const li = document.createElement('li');
+                        li.className = 'user-item';
+                        li.innerHTML = `
+                            <span>${userData.name}</span>
+                            <button onclick="shareText('${userData.uid}')">Kirim ✔</button>
+                        `;
+                        userListEl.appendChild(li);
+                    }
+                });
+                if (!hasOtherUsers) {
+                    userListEl.innerHTML = '<li>Belum ada pengguna lain.</li>';
+                }
+            } else {
+                userListEl.innerHTML = '<li>Belum ada pengguna lain.</li>';
+            }
+        });
+
+        // 5. Menerima Teks (Listener untuk node diri sendiri)
+        const myInboxRef = ref(db, `shared_texts/${myUid}`);
+        onValue(myInboxRef, (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                document.getElementById('receivedText').value = data.text;
+                document.getElementById('senderInfo').innerText = `Dikirim oleh: ${data.fromName}`;
+                
+                // Opsional: Hapus pesan dari database setelah diterima agar tidak penuh
+                remove(myInboxRef);
+            }
+        });
+
+        // 6. Fungsi Mengirim Teks (Diekspos ke window agar bisa dipanggil dari HTML)
+        window.shareText = function(targetUid) {
+            const textContent = document.getElementById('textToShare').value;
+            if (!textContent.trim()) {
+                alert("Isi teks terlebih dahulu!");
+                return;
+            }
+
+            const targetInboxRef = ref(db, `shared_texts/${targetUid}`);
+            set(targetInboxRef, {
+                text: textContent,
+                fromName: myName,
+                timestamp: Date.now()
+            }).then(() => {
+                alert("Teks berhasil dikirim!");
+            }).catch((error) => {
+                alert("Gagal mengirim teks: " + error.message);
+            });
+        };
+
+        // 7. Fungsi Copy Teks (Clipboard API)
+        window.copyReceivedText = function() {
+            const copyText = document.getElementById("receivedText");
+            if (!copyText.value) {
+                alert("Tidak ada teks untuk disalin!");
+                return;
+            }
+            
+            // Pilih teks
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); // Untuk perangkat mobile
+
+            // Salin ke clipboard
+            navigator.clipboard.writeText(copyText.value).then(() => {
+                alert("Teks berhasil disalin!");
+            }).catch(() => {
+                // Fallback untuk browser lawas
+                document.execCommand("copy");
+                alert("Teks berhasil disalin! (Fallback)");
+            });
+        };
+    </script>
+</body>
+</html>
