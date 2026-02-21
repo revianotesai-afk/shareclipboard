@@ -3,36 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Share Text Pro</title>
+    <title>Share Text & File (Base64)</title>
     <style>
+        /* Default Theme: DARK MODE */
         :root {
+            --primary: #3B82F6;
+            --primary-hover: #2563EB;
+            --bg: #111827;
+            --card: #1F2937;
+            --text: #F9FAFB;
+            --border: #374151;
+            --header-text: #FFFFFF;
+        }
+
+        /* LIGHT MODE */
+        [data-theme="light"] {
             --primary: #2563EB;
             --primary-hover: #1D4ED8;
             --bg: #F3F4F6;
             --card: #FFFFFF;
             --text: #1F2937;
             --border: #E5E7EB;
+            --header-text: #FFFFFF;
         }
+
         body {
             font-family: system-ui, -apple-system, sans-serif;
             background-color: var(--bg);
             color: var(--text);
             margin: 0;
             padding: 0;
-            overflow-x: hidden; /* Mencegah scroll ngang karena drawer */
+            overflow-x: hidden;
+            transition: background-color 0.3s, color 0.3s;
         }
         
-        /* Header & Navigation */
         header {
             background-color: var(--primary);
-            color: white;
+            color: var(--header-text);
             padding: 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
-        .menu-btn {
+        
+        .header-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
             background: rgba(255,255,255,0.2);
             border: none;
             color: white;
@@ -42,7 +62,6 @@
             font-weight: bold;
         }
 
-        /* Container Content */
         .container {
             padding: 16px;
             max-width: 600px;
@@ -58,14 +77,17 @@
             border-radius: 12px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             border: 1px solid var(--border);
+            transition: background-color 0.3s, border-color 0.3s;
         }
         
         h3 { margin: 0 0 12px 0; font-size: 1.1rem; }
         
         textarea {
             width: 100%;
-            height: 100px;
+            height: 80px;
             padding: 12px;
+            background-color: var(--bg);
+            color: var(--text);
             border: 1px solid var(--border);
             border-radius: 8px;
             resize: none;
@@ -73,6 +95,12 @@
             font-family: monospace;
             font-size: 14px;
             margin-bottom: 12px;
+        }
+
+        input[type="file"] {
+            margin-bottom: 12px;
+            color: var(--text);
+            width: 100%;
         }
 
         .btn-full {
@@ -91,70 +119,11 @@
             gap: 8px;
         }
         .btn-full:active { background-color: var(--primary-hover); }
-        .btn-full:disabled { background-color: #9CA3AF; cursor: not-allowed; }
+        .btn-full:disabled { background-color: #6B7280; cursor: not-allowed; }
 
-        /* Drawer Styling */
-        .overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
-            opacity: 0;
-            visibility: hidden;
-            transition: 0.3s ease;
-            z-index: 40;
-        }
-        .overlay.active { opacity: 1; visibility: visible; }
-
-        .drawer {
-            position: fixed;
-            top: 0; right: -280px; /* Sembunyikan di luar layar kanan */
-            width: 280px;
-            height: 100%;
-            background: var(--card);
-            box-shadow: -4px 0 15px rgba(0,0,0,0.1);
-            transition: 0.3s ease-in-out;
-            z-index: 50;
-            display: flex;
-            flex-direction: column;
-        }
-        .drawer.active { right: 0; }
-
-        .drawer-header {
-            padding: 16px;
-            background: var(--bg);
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;}
-        
-        .user-list {
-            list-style: none;
-            padding: 0; margin: 0;
-            overflow-y: auto;
-            flex: 1;
-        }
-        .user-item {
-            padding: 16px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-        }
-        .user-item:hover { background-color: var(--bg); }
-        
-        /* Status Indicators */
-        .status-dot {
-            width: 10px; height: 10px;
-            background-color: #10B981;
-            border-radius: 50%;
-            display: inline-block;
-        }
         .target-badge {
-            background-color: #FCE7F3;
-            color: #BE185D;
+            background-color: rgba(59, 130, 246, 0.2);
+            color: var(--primary);
             padding: 4px 10px;
             border-radius: 12px;
             font-size: 0.8rem;
@@ -163,36 +132,104 @@
             margin-bottom: 10px;
         }
 
+        #mediaContainer img, #mediaContainer video {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border);
+        }
+
+        /* Drawer Styling */
+        .overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            opacity: 0; visibility: hidden; transition: 0.3s; z-index: 40;
+        }
+        .overlay.active { opacity: 1; visibility: visible; }
+
+        .drawer {
+            position: fixed; top: 0; right: -280px;
+            width: 280px; height: 100%;
+            background: var(--card);
+            box-shadow: -4px 0 15px rgba(0,0,0,0.5);
+            transition: 0.3s ease-in-out; z-index: 50;
+            display: flex; flex-direction: column;
+        }
+        .drawer.active { right: 0; }
+        .drawer-header {
+            padding: 16px; background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text);}
+        .user-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; }
+        .user-item {
+            padding: 16px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+        }
+        .user-item:hover { background-color: var(--bg); }
+        .status-dot { width: 10px; height: 10px; background-color: #10B981; border-radius: 50%; }
+
+        /* Toast Notification (Green Text) */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #10B981;
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: 0.3s ease;
+            z-index: 100;
+            text-align: center;
+        }
+        .toast.show { opacity: 1; visibility: visible; top: 80px; }
+
     </style>
 </head>
-<body>
+<body data-theme="dark">
+
+    <div id="connectionToast" class="toast"></div>
 
     <header>
         <div>
-            <strong style="font-size: 1.2rem;">KirimTeks</strong><br>
+            <strong style="font-size: 1.2rem;">ShareIt (Zero-Setup)</strong><br>
             <span style="font-size: 0.8rem;" id="myIdentity">Menghubungkan...</span>
         </div>
-        <button class="menu-btn" onclick="toggleDrawer(true)">👥 Users Online</button>
+        <div class="header-btns">
+            <button class="icon-btn" onclick="toggleTheme()">🌗</button>
+            <button class="icon-btn" onclick="toggleDrawer(true)">👥 Users</button>
+        </div>
     </header>
 
     <div class="container">
         
         <div class="card">
-            <h3>Kirim Teks</h3>
+            <h3>Kirim Data</h3>
             <div id="targetIndicator" class="target-badge" style="display: none;">Target: <span id="targetNameLabel"></span></div>
-            <textarea id="textToSend" placeholder="Ketik atau paste teks yang akan dibagikan di sini..."></textarea>
-            <button id="sendBtn" class="btn-full" onclick="sendText()" disabled>
-                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path></svg>
-                Send
+            
+            <textarea id="textToSend" placeholder="Ketik pesan teks di sini..."></textarea>
+            <label style="font-size: 0.9rem; margin-bottom: 4px; display: block;">Sertakan File (< 3MB):</label>
+            <input type="file" id="fileInput" accept="image/*, video/*">
+            
+            <button id="sendBtn" class="btn-full" onclick="sendData()" disabled>
+                Kirim
             </button>
         </div>
 
         <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <h3 style="margin:0;">Kotak Masuk</h3>
-                <span style="font-size: 0.8rem; color: #6B7280;" id="senderInfoLabel">Kosong</span>
+                <span style="font-size: 0.8rem; color: #9CA3AF;" id="senderInfoLabel">Kosong</span>
             </div>
-            <textarea id="receivedText" readonly placeholder="Teks dari pengguna lain akan muncul di sini..."></textarea>
+            <div id="mediaContainer"></div>
+            <textarea id="receivedText" readonly placeholder="Teks masuk..."></textarea>
             <button class="btn-full" onclick="copyText()" style="background-color: #10B981;">
                 📋 Copy Teks
             </button>
@@ -206,15 +243,15 @@
             <button class="close-btn" onclick="toggleDrawer(false)">✖</button>
         </div>
         <ul class="user-list" id="userList">
-            <li style="padding: 16px; color: #6B7280; text-align: center;">Mencari pengguna...</li>
+            <li style="padding: 16px; text-align: center;">Mencari pengguna...</li>
         </ul>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        // Tambahkan Modul Auth
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getDatabase, ref, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        // KITA HAPUS STORAGE: Tidak perlu import Firebase Storage lagi!
 
         const firebaseConfig = {
             apiKey: "AIzaSyCuEQQU_K8VFMrK7iu0tCvB3ujb_d75w-Y",
@@ -228,161 +265,232 @@
         const auth = getAuth(app);
         const db = getDatabase(app);
 
-        // Variabel Global
         let myUid = null;
-        let myName = 'User_' + Math.floor(Math.random() * 9000 + 1000); // Nama visual
+        let myName = 'User_' + Math.floor(Math.random() * 9000 + 1000);
         let selectedTargetUid = null;
 
-        // 1. Eksekusi Anonymous Login
-        signInAnonymously(auth).catch((error) => {
-            console.error("Gagal Login Anonymous:", error);
-            alert("Gagal koneksi otentikasi. Pastikan Anonymous Sign-in aktif di Firebase!");
-        });
+        // Theme Manager
+        if (localStorage.getItem('theme') === 'light') {
+            document.body.setAttribute('data-theme', 'light');
+        }
 
-        // Pantau Status Login
+        window.toggleTheme = function() {
+            const body = document.body;
+            if (body.getAttribute('data-theme') === 'light') {
+                body.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                body.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+            }
+        };
+
+        signInAnonymously(auth).catch((error) => console.error("Auth Error:", error));
+
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 myUid = user.uid;
                 document.getElementById('myIdentity').innerText = myName + ' (Online)';
                 setupPresence();
-                listenForIncomingTexts();
+                listenForIncomingData();
+                listenForConnections();
             }
         });
 
-        // 2. Sistem Kehadiran (Presence) yang mendeteksi koneksi jaringan
         function setupPresence() {
             const connectedRef = ref(db, '.info/connected');
             const myUserRef = ref(db, `users/${myUid}`);
 
             onValue(connectedRef, (snap) => {
                 if (snap.val() === true) {
-                    // Jika koneksi putus, hapus data user ini
                     onDisconnect(myUserRef).remove().then(() => {
-                        // Tulis data user ini saat terhubung
                         set(myUserRef, { uid: myUid, name: myName });
                     });
                 }
             });
 
-            // Pantau daftar pengguna online
             const usersRef = ref(db, 'users');
             onValue(usersRef, (snapshot) => {
                 const userListEl = document.getElementById('userList');
                 userListEl.innerHTML = '';
-                
                 let count = 0;
                 if (snapshot.exists()) {
-                    snapshot.forEach((childSnapshot) => {
-                        const userData = childSnapshot.val();
+                    snapshot.forEach((childSnap) => {
+                        const userData = childSnap.val();
                         if (userData.uid !== myUid) {
                             count++;
                             const li = document.createElement('li');
                             li.className = 'user-item';
-                            // Jika list di-klik, panggil fungsi global selectTarget
                             li.onclick = () => window.selectTarget(userData.uid, userData.name);
-                            li.innerHTML = `
-                                <span>${userData.name}</span>
-                                <span class="status-dot"></span>
-                            `;
+                            li.innerHTML = `<span>${userData.name}</span><span class="status-dot"></span>`;
                             userListEl.appendChild(li);
                         }
                     });
                 }
-                
-                if (count === 0) {
-                    userListEl.innerHTML = '<li style="padding: 16px; color: #6B7280; text-align: center;">Belum ada pengguna lain.</li>';
+                if (count === 0) userListEl.innerHTML = '<li style="padding: 16px; text-align: center;">Tidak ada user lain.</li>';
+            });
+        }
+
+        // Listener Notifikasi "Anda terconnect oleh..."
+        function listenForConnections() {
+            const connectionRef = ref(db, `connections/${myUid}`);
+            onValue(connectionRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    showToast(`Anda terconnect oleh ${data.fromName}`);
+                    remove(connectionRef);
                 }
             });
         }
 
-        // 3. Terima Pesan Masuk
-        function listenForIncomingTexts() {
+        function showToast(message) {
+            const toast = document.getElementById('connectionToast');
+            toast.innerText = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 4000);
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        }
+
+        function listenForIncomingData() {
             const myInboxRef = ref(db, `shared_texts/${myUid}`);
             onValue(myInboxRef, (snapshot) => {
                 if (snapshot.exists()) {
                     const data = snapshot.val();
-                    document.getElementById('receivedText').value = data.text;
+                    
+                    document.getElementById('receivedText').value = data.text || '';
                     document.getElementById('senderInfoLabel').innerText = `Dari: ${data.fromName}`;
                     
-                    // Notifikasi getar ringan jika browser/HP mendukung
-                    if (navigator.vibrate) navigator.vibrate(200);
+                    const mediaContainer = document.getElementById('mediaContainer');
+                    mediaContainer.innerHTML = ''; 
                     
-                    remove(myInboxRef); // Bersihkan node setelah diterima
+                    // Menampilkan dari Base64 URL
+                    if (data.fileBase64) {
+                        if (data.fileType === 'image') {
+                            mediaContainer.innerHTML = `<img src="${data.fileBase64}" alt="Received Image">`;
+                        } else if (data.fileType === 'video') {
+                            mediaContainer.innerHTML = `<video src="${data.fileBase64}" controls></video>`;
+                        }
+                    }
+                    
+                    if (navigator.vibrate) navigator.vibrate(200);
+                    remove(myInboxRef);
                 }
             });
         }
 
-        // 4. Fungsi-fungsi Global (Diikat ke window agar bisa diakses HTML/UI)
         window.toggleDrawer = function(show) {
             const drawer = document.getElementById('drawer');
             const overlay = document.getElementById('overlay');
             if(show) {
-                drawer.classList.add('active');
-                overlay.classList.add('active');
+                drawer.classList.add('active'); overlay.classList.add('active');
             } else {
-                drawer.classList.remove('active');
-                overlay.classList.remove('active');
+                drawer.classList.remove('active'); overlay.classList.remove('active');
             }
         };
 
         window.selectTarget = function(uid, name) {
             selectedTargetUid = uid;
-            
-            // Update UI Target
-            const indicator = document.getElementById('targetIndicator');
-            const targetNameLabel = document.getElementById('targetNameLabel');
-            const sendBtn = document.getElementById('sendBtn');
-            
-            indicator.style.display = 'inline-block';
-            targetNameLabel.innerText = name;
-            sendBtn.disabled = false; // Aktifkan tombol Send
-            
-            window.toggleDrawer(false); // Tutup drawer otomatis
+            document.getElementById('targetIndicator').style.display = 'inline-block';
+            document.getElementById('targetNameLabel').innerText = name;
+            document.getElementById('sendBtn').disabled = false;
+            window.toggleDrawer(false);
+
+            // Trigger notifikasi hijau di layar target
+            const targetConnRef = ref(db, `connections/${uid}`);
+            set(targetConnRef, { fromName: myName, timestamp: Date.now() });
         };
 
-        window.sendText = function() {
+        // ENGINEER TRICK: Convert file ke string Base64 menggunakan API bawaan browser
+        function getBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        window.sendData = async function() {
             if (!selectedTargetUid) return;
             
             const textContent = document.getElementById('textToSend').value;
-            if (!textContent.trim()) {
-                alert("Teks tidak boleh kosong!");
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!textContent.trim() && !file) {
+                alert("Isi teks atau pilih file terlebih dahulu!");
                 return;
             }
 
             const sendBtn = document.getElementById('sendBtn');
-            sendBtn.innerHTML = 'Mengirim...';
+            sendBtn.innerHTML = 'Memproses...';
             sendBtn.disabled = true;
 
+            let fileBase64 = null;
+            let fileType = null;
+
+            if (file) {
+                // LIMITASI 3MB: Mencegah Realtime DB jebol atau browser freeze
+                const maxSize = 3 * 1024 * 1024;
+                if (file.size > maxSize) {
+                    alert("Ukuran file terlalu besar untuk metode Base64! Maksimal 3MB.");
+                    resetBtn();
+                    return;
+                }
+
+                const isImage = file.type.startsWith('image/');
+                const isVideo = file.type.startsWith('video/');
+                
+                if (!isImage && !isVideo) {
+                    alert("Format tidak didukung. Pilih Gambar/Video.");
+                    resetBtn();
+                    return;
+                }
+
+                fileType = isImage ? 'image' : 'video';
+                try {
+                    sendBtn.innerHTML = 'Encoding File...';
+                    fileBase64 = await getBase64(file);
+                } catch (error) {
+                    alert("Gagal membaca file: " + error.message);
+                    resetBtn();
+                    return;
+                }
+            }
+
+            // Kirim teks dan string Base64 ke RTDB target
+            sendBtn.innerHTML = 'Mengirim Pesan...';
             const targetInboxRef = ref(db, `shared_texts/${selectedTargetUid}`);
+            
             set(targetInboxRef, {
                 text: textContent,
+                fileBase64: fileBase64, // Simpan string Base64 langsung
+                fileType: fileType,
                 fromName: myName,
                 timestamp: Date.now()
             }).then(() => {
-                alert("Teks berhasil terkirim!");
-                document.getElementById('textToSend').value = ''; // Reset form
+                showToast("Berhasil terkirim!");
+                document.getElementById('textToSend').value = '';
+                document.getElementById('fileInput').value = '';
             }).catch((error) => {
-                alert("Gagal: " + error.message);
+                alert("Gagal mengirim: Data mungkin terlalu besar (" + error.message + ")");
             }).finally(() => {
-                sendBtn.innerHTML = 'Send';
-                sendBtn.disabled = false;
+                resetBtn();
             });
         };
 
+        function resetBtn() {
+            const btn = document.getElementById('sendBtn');
+            btn.innerHTML = 'Kirim';
+            btn.disabled = false;
+        }
+
         window.copyText = function() {
             const copyInput = document.getElementById("receivedText");
-            if (!copyInput.value) {
-                alert("Belum ada teks yang bisa disalin!");
-                return;
-            }
+            if (!copyInput.value) return alert("Belum ada teks!");
             copyInput.select();
             copyInput.setSelectionRange(0, 99999);
-            navigator.clipboard.writeText(copyInput.value)
-                .then(() => alert("Teks tersalin ke clipboard!"))
-                .catch(() => {
-                    document.execCommand("copy");
-                    alert("Teks tersalin! (Mode lawas)");
-                });
+            navigator.clipboard.writeText(copyInput.value).then(() => showToast("Teks disalin!"));
         };
     </script>
 </body>
